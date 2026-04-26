@@ -57,6 +57,11 @@ wpd.acquireData = (function() {
         wpd.graphicsWidget.setTool(tool);
     }
 
+    function addPointsOnLine() {
+        var tool = new wpd.AddPointsOnLineTool(axes, dataset);
+        wpd.graphicsWidget.setTool(tool);
+    }
+
     function deletePoint() {
         var tool = new wpd.DeleteDataPointTool(axes, dataset);
         wpd.graphicsWidget.setTool(tool);
@@ -121,6 +126,9 @@ wpd.acquireData = (function() {
             case 'a':
                 manualSelection();
                 break;
+            case 'l':
+                addPointsOnLine();
+                break;
             case 's':
                 adjustPoints();
                 break;
@@ -134,7 +142,8 @@ wpd.acquireData = (function() {
 
     function isToolSwitchKey(keyCode) {
         if (wpd.keyCodes.isAlphabet(keyCode, 'a') || wpd.keyCodes.isAlphabet(keyCode, 's') ||
-            wpd.keyCodes.isAlphabet(keyCode, 'd') || wpd.keyCodes.isAlphabet(keyCode, 'e')) {
+            wpd.keyCodes.isAlphabet(keyCode, 'd') || wpd.keyCodes.isAlphabet(keyCode, 'e') ||
+            wpd.keyCodes.isAlphabet(keyCode, 'l')) {
             return true;
         }
         return false;
@@ -143,6 +152,7 @@ wpd.acquireData = (function() {
     return {
         load: load,
         manualSelection: manualSelection,
+        addPointsOnLine: addPointsOnLine,
         adjustPoints: adjustPoints,
         deletePoint: deletePoint,
         clearAll: clearAll,

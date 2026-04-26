@@ -171,6 +171,77 @@ wpd.ManualSelectionTool = (function() {
     return Tool;
 })();
 
+wpd.AddPointsOnLineTool = (function() {
+    var Tool = function(axes, dataset) {
+        var firstPoint = null;
+
+        this.onAttach = function() {
+            document.getElementById('add-points-on-line-button').classList.add('pressed-button');
+            wpd.graphicsWidget.setRepainter(new wpd.DataPointsRepainter(axes, dataset));
+        };
+
+        this.onRemove = function() {
+            document.getElementById('add-points-on-line-button').classList.remove('pressed-button');
+            firstPoint = null;
+            wpd.graphicsWidget.resetHover();
+        };
+
+        this.onMouseClick = function(ev, pos, imagePos) {
+            if (firstPoint === null) {
+                firstPoint = { x: imagePos.x, y: imagePos.y };
+                var index = dataset.addPixel(firstPoint.x, firstPoint.y);
+                wpd.graphicsHelper.drawPoint(firstPoint, dataset.colorRGB.toRGBString());
+                wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: index });
+            } else {
+                var dx = imagePos.x - firstPoint.x;
+                var dy = imagePos.y - firstPoint.y;
+                var distance = Math.sqrt(dx * dx + dy * dy);
+                var numIntervals = Math.max(1, Math.round(distance / 10));
+
+                for (var i = 1; i <= numIntervals; i++) {
+                    var t = i / numIntervals;
+                    var pt = { x: firstPoint.x + dx * t, y: firstPoint.y + dy * t };
+                    var idx = dataset.addPixel(pt.x, pt.y);
+                    wpd.graphicsHelper.drawPoint(pt, dataset.colorRGB.toRGBString());
+                    wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: idx });
+                }
+
+                wpd.graphicsWidget.resetHover();
+                wpd.dataPointCounter.setCount(dataset.getCount());
+                firstPoint = null;
+            }
+            wpd.graphicsWidget.updateZoomOnEvent(ev);
+        };
+
+        this.onMouseMove = function(ev, pos, imagePos) {
+            if (firstPoint === null) return;
+
+            wpd.graphicsWidget.resetHover();
+
+            var ctx = wpd.graphicsWidget.getAllContexts();
+            var dpr = window.devicePixelRatio;
+            var canvasP1 = wpd.graphicsWidget.imageToCanvasPx(firstPoint.x, firstPoint.y);
+            var canvasP2 = wpd.graphicsWidget.imageToCanvasPx(imagePos.x, imagePos.y);
+
+            ctx.hoverCtx.beginPath();
+            ctx.hoverCtx.strokeStyle = 'rgb(0, 200, 0)';
+            ctx.hoverCtx.lineWidth = 1 * dpr;
+            ctx.hoverCtx.setLineDash([5 * dpr, 5 * dpr]);
+            ctx.hoverCtx.moveTo(canvasP1.x, canvasP1.y);
+            ctx.hoverCtx.lineTo(canvasP2.x, canvasP2.y);
+            ctx.hoverCtx.stroke();
+            ctx.hoverCtx.setLineDash([]);
+        };
+
+        this.onKeyDown = function(ev) {
+            if (wpd.acquireData.isToolSwitchKey(ev.keyCode)) {
+                wpd.acquireData.switchToolOnKeyPress(String.fromCharCode(ev.keyCode).toLowerCase());
+            }
+        };
+    };
+    return Tool;
+})();
+
 wpd.DeleteDataPointTool = (function() {
     var Tool = function(axes, dataset) {
         var ctx = wpd.graphicsWidget.getAllContexts();
