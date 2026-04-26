@@ -226,8 +226,8 @@ wpd.AddPointsOnLineTool = (function() {
             var canvasP2 = wpd.graphicsWidget.imageToCanvasPx(imagePos.x, imagePos.y);
 
             ctx.hoverCtx.beginPath();
-            ctx.hoverCtx.strokeStyle = 'rgb(0, 200, 0)';
-            ctx.hoverCtx.lineWidth = 1 * dpr;
+            ctx.hoverCtx.strokeStyle = 'rgb(0, 255, 0)';
+            ctx.hoverCtx.lineWidth = 2 * dpr;
             ctx.hoverCtx.setLineDash([5 * dpr, 5 * dpr]);
             ctx.hoverCtx.moveTo(canvasP1.x, canvasP1.y);
             ctx.hoverCtx.lineTo(canvasP2.x, canvasP2.y);
