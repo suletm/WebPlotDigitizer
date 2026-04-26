@@ -49,17 +49,23 @@ wpd.XYAxes = (function() {
             c_vec = [0, 0],
 
             processCalibration = function(cal, isLogX, isLogY, noRotationCorrection, isPiecewiseYFlag) {
-                if (cal.getCount() < 5) {
+                if (cal.getCount() < 4) {
                     return false;
                 }
 
                 var cp1 = cal.getPoint(0),
                     cp2 = cal.getPoint(1),
                     cp3 = cal.getPoint(2),
-                    cp4 = cal.getPoint(3),  // Y2 (middle, used only for piecewise)
-                    cp5 = cal.getPoint(4),  // Y3
+                    cp4 = cal.getPoint(3),  // Y2: last Y point for linear, or middle for piecewise
+                    cp5 = cal.getCount() >= 5 ? cal.getPoint(4) : null,  // Y3: only for piecewise
                     ip = new wpd.InputParser(),
                     dat_mat, pix_mat;
+
+                if (isPiecewiseYFlag && cp5 === null) {
+                    return false;
+                }
+
+                var cpYLast = isPiecewiseYFlag ? cp5 : cp4;
 
                 x1 = cp1.px;
                 y1 = cp1.py;
@@ -67,14 +73,13 @@ wpd.XYAxes = (function() {
                 y2 = cp2.py;
                 x3 = cp3.px;
                 y3 = cp3.py;
-                // Use Y3 (cp5) for the calibration matrix, not Y2
-                x4 = cp5.px;
-                y4 = cp5.py;
+                x4 = cpYLast.px;
+                y4 = cpYLast.py;
 
                 xmin = cp1.dx;
                 xmax = cp2.dx;
                 ymin = cp3.dy;
-                ymax = cp5.dy;
+                ymax = cpYLast.dy;
 
                 // Check for dates, validity etc.
 
@@ -350,7 +355,7 @@ wpd.XYAxes = (function() {
     };
 
     AxesObj.prototype.numCalibrationPointsRequired = function() {
-        return 5;
+        return 4;
     };
 
     AxesObj.prototype.getDimensions = function() {

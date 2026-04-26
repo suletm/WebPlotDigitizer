@@ -38,7 +38,8 @@ wpd.AxesCornersTool = class {
     }
 
     onMouseMove(ev, pos, imagePos) {
-        if (this.isCapturingCorners && this._calibration.getCount() > 0) {
+        const count = this._calibration.getCount();
+        if (count < this._calibration.maxPointCount && count > 0) {
             const repainter = wpd.graphicsWidget.getRepainter();
             if (repainter && repainter.updateMousePos) {
                 repainter.updateMousePos(imagePos.x, imagePos.y);
@@ -47,7 +48,7 @@ wpd.AxesCornersTool = class {
             return;
         }
 
-        if (this._calibration.getCount() != this._calibration.maxPointCount) {
+        if (count < this._calibration.maxPointCount) {
             return;
         }
         const ptIndex = this._calibration.findNearestPoint(imagePos.x, imagePos.y);
@@ -65,7 +66,7 @@ wpd.AxesCornersTool = class {
     }
 
     onMouseDown(ev, pos, imagePos) {
-        if (this._calibration.getCount() != this._calibration.maxPointCount) {
+        if (this._calibration.getCount() < this._calibration.maxPointCount) {
             return;
         }
         const ptIndex = this._calibration.findNearestPoint(imagePos.x, imagePos.y);
@@ -82,15 +83,16 @@ wpd.AxesCornersTool = class {
     }
 
     onMouseClick(ev, pos, imagePos) {
-        if (this.isCapturingCorners) {
-            this.pointCount = this.pointCount + 1;
+        const currentCount = this._calibration.getCount();
+        if (this.isCapturingCorners || currentCount < this._calibration.maxPointCount) {
+            this.pointCount = currentCount + 1;
 
             this._calibration.addPoint(imagePos.x, imagePos.y, 0, 0);
             this._calibration.unselectAll();
             this._calibration.selectPoint(this.pointCount - 1);
             wpd.graphicsWidget.forceHandlerRepaint();
 
-            if (this.pointCount === this._calibration.maxPointCount) {
+            if (this.pointCount >= this._calibration.maxPointCount) {
                 this.isCapturingCorners = false;
                 wpd.alignAxes.calibrationCompleted();
             }
@@ -232,7 +234,7 @@ wpd.AlignmentCornersRepainter = class {
                 }, "rgba(0,200,0,0.5)");
             }
 
-            if (count === 4 && this._mousePos) {
+            if (count === 4 && this._mousePos && this._calibration.maxPointCount > 4) {
                 let y2 = this._calibration.getPoint(3);
                 wpd.graphicsHelper.drawLine({
                     x: y2.px,

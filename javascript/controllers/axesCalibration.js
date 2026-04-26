@@ -35,12 +35,11 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         if (this._isEditing) {
             let axes = wpd.tree.getActiveAxes();
             let prevCal = axes.calibration;
-            if (prevCal.getCount() == 5) {
+            if (prevCal.getCount() >= 4) {
                 document.getElementById('xy-axes-x1').value = prevCal.getPoint(0).dx;
                 document.getElementById('xy-axes-x2').value = prevCal.getPoint(1).dx;
                 document.getElementById('xy-axes-y1').value = prevCal.getPoint(2).dy;
                 document.getElementById('xy-axes-y2').value = prevCal.getPoint(3).dy;
-                document.getElementById('xy-axes-y3').value = prevCal.getPoint(4).dy;
                 const $xscale = document.getElementById('xy-axes-xscale');
                 if (axes.isLogX()) {
                     $xscale.value = "log";
@@ -50,7 +49,8 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
                     $xscale.value = "linear";
                 }
                 const $yscale = document.getElementById('xy-axes-yscale');
-                if (axes.isPiecewiseY()) {
+                const isPiecewise = axes.isPiecewiseY();
+                if (isPiecewise) {
                     $yscale.value = "piecewise";
                 } else if (axes.isLogY()) {
                     $yscale.value = "log";
@@ -59,8 +59,19 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
                 } else {
                     $yscale.value = "linear";
                 }
+                const y3Row = document.getElementById('xy-axes-y3-row');
+                if (isPiecewise && prevCal.getCount() >= 5) {
+                    document.getElementById('xy-axes-y3').value = prevCal.getPoint(4).dy;
+                    y3Row.style.display = '';
+                    this._calibration.maxPointCount = 5;
+                } else {
+                    y3Row.style.display = 'none';
+                    this._calibration.maxPointCount = 4;
+                }
                 document.getElementById('xy-axes-skip-rotation').checked = axes.noRotation();
             }
+        } else {
+            document.getElementById('xy-axes-y3-row').style.display = 'none';
         }
         if (this._calibration.getCount() < this._calibration.maxPointCount) {
             document.getElementById("xy-axes-calibrate").disabled = true;
@@ -71,8 +82,7 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         let xmin = document.getElementById('xy-axes-x1').value;
         let xmax = document.getElementById('xy-axes-x2').value;
         let ymin = document.getElementById('xy-axes-y1').value;
-        let ymid = document.getElementById('xy-axes-y2').value;
-        let ymax = document.getElementById('xy-axes-y3').value;
+        let y2val = document.getElementById('xy-axes-y2').value;
         const $xscale = document.getElementById('xy-axes-xscale');
         const $yscale = document.getElementById('xy-axes-yscale');
         let xlog = ($xscale.value === "log");
@@ -80,6 +90,9 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         let ypiecewise = ($yscale.value === "piecewise");
         let noRotation = document.getElementById('xy-axes-skip-rotation').checked;
         let axes = this._isEditing ? wpd.tree.getActiveAxes() : new wpd.XYAxes();
+
+        // For non-piecewise Y2 is the max; for piecewise Y2 is the middle and Y3 is the max
+        let ymax = ypiecewise ? document.getElementById('xy-axes-y3').value : y2val;
 
         // validate log scale values
         if ((xlog && (parseFloat(xmin) == 0 || parseFloat(xmax) == 0)) ||
@@ -93,8 +106,12 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         this._calibration.setDataAt(0, xmin, ymin);
         this._calibration.setDataAt(1, xmax, ymin);
         this._calibration.setDataAt(2, xmin, ymin);
-        this._calibration.setDataAt(3, xmin, ymid);
-        this._calibration.setDataAt(4, xmax, ymax);
+        if (ypiecewise) {
+            this._calibration.setDataAt(3, xmin, y2val);
+            this._calibration.setDataAt(4, xmax, ymax);
+        } else {
+            this._calibration.setDataAt(3, xmax, ymax);
+        }
         if (!axes.calibrate(this._calibration, xlog, ylog, noRotation, ypiecewise)) {
             wpd.messagePopup.show(wpd.gettext('calibration-invalid-inputs'),
                 wpd.gettext('calibration-enter-valid'),
@@ -355,7 +372,7 @@ wpd.alignAxes = (function() {
             calibration = new wpd.Calibration(2);
             calibration.labels = ['X1', 'X2', 'Y1', 'Y2', 'Y3'];
             calibration.labelPositions = ['N', 'N', 'E', 'E', 'E'];
-            calibration.maxPointCount = 5;
+            calibration.maxPointCount = 4;  // default for linear; bumped to 5 for piecewise
             calibrator = new wpd.XYAxesCalibrator(calibration);
         } else if (axesTypeString === "bar") {
             calibration = new wpd.Calibration(2);
@@ -644,6 +661,20 @@ wpd.alignAxes = (function() {
         return fullName;
     }
 
+    function yscaleChanged() {
+        const isPiecewise = document.getElementById('xy-axes-yscale').value === 'piecewise';
+        document.getElementById('xy-axes-y3-row').style.display = isPiecewise ? '' : 'none';
+        if (calibration == null) return;
+        calibration.maxPointCount = isPiecewise ? 5 : 4;
+        const count = calibration.getCount();
+        const btn = document.getElementById('xy-axes-calibrate');
+        if (isPiecewise) {
+            if (count < 5) btn.disabled = true;
+        } else {
+            if (count >= 4) btn.disabled = false;
+        }
+    }
+
     function postProcessAxesAdd(axes, suppressDatasetCreation) {
         // dispatch axes add event
         wpd.events.dispatch("wpd.axes.add", {
@@ -695,6 +726,7 @@ wpd.alignAxes = (function() {
         getCornerValues: getCornerValues,
         pickCorners: pickCorners,
         align: align,
+        yscaleChanged: yscaleChanged,
         editAlignment: editAlignment,
         reloadCalibrationForEditing: reloadCalibrationForEditing,
         addCalibration: addCalibration,
