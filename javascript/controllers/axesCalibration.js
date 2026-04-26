@@ -35,11 +35,12 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         if (this._isEditing) {
             let axes = wpd.tree.getActiveAxes();
             let prevCal = axes.calibration;
-            if (prevCal.getCount() == 4) {
+            if (prevCal.getCount() == 5) {
                 document.getElementById('xy-axes-x1').value = prevCal.getPoint(0).dx;
                 document.getElementById('xy-axes-x2').value = prevCal.getPoint(1).dx;
                 document.getElementById('xy-axes-y1').value = prevCal.getPoint(2).dy;
                 document.getElementById('xy-axes-y2').value = prevCal.getPoint(3).dy;
+                document.getElementById('xy-axes-y3').value = prevCal.getPoint(4).dy;
                 const $xscale = document.getElementById('xy-axes-xscale');
                 if (axes.isLogX()) {
                     $xscale.value = "log";
@@ -49,7 +50,9 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
                     $xscale.value = "linear";
                 }
                 const $yscale = document.getElementById('xy-axes-yscale');
-                if (axes.isLogY()) {
+                if (axes.isPiecewiseY()) {
+                    $yscale.value = "piecewise";
+                } else if (axes.isLogY()) {
                     $yscale.value = "log";
                 } else if (axes.isDate(1)) {
                     $yscale.value = "date";
@@ -68,11 +71,13 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         let xmin = document.getElementById('xy-axes-x1').value;
         let xmax = document.getElementById('xy-axes-x2').value;
         let ymin = document.getElementById('xy-axes-y1').value;
-        let ymax = document.getElementById('xy-axes-y2').value;
+        let ymid = document.getElementById('xy-axes-y2').value;
+        let ymax = document.getElementById('xy-axes-y3').value;
         const $xscale = document.getElementById('xy-axes-xscale');
         const $yscale = document.getElementById('xy-axes-yscale');
         let xlog = ($xscale.value === "log");
         let ylog = ($yscale.value === "log");
+        let ypiecewise = ($yscale.value === "piecewise");
         let noRotation = document.getElementById('xy-axes-skip-rotation').checked;
         let axes = this._isEditing ? wpd.tree.getActiveAxes() : new wpd.XYAxes();
 
@@ -88,8 +93,9 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         this._calibration.setDataAt(0, xmin, ymin);
         this._calibration.setDataAt(1, xmax, ymin);
         this._calibration.setDataAt(2, xmin, ymin);
-        this._calibration.setDataAt(3, xmax, ymax);
-        if (!axes.calibrate(this._calibration, xlog, ylog, noRotation)) {
+        this._calibration.setDataAt(3, xmin, ymid);
+        this._calibration.setDataAt(4, xmax, ymax);
+        if (!axes.calibrate(this._calibration, xlog, ylog, noRotation, ypiecewise)) {
             wpd.messagePopup.show(wpd.gettext('calibration-invalid-inputs'),
                 wpd.gettext('calibration-enter-valid'),
                 wpd.alignAxes.getCornerValues);
@@ -347,9 +353,9 @@ wpd.alignAxes = (function() {
     function initiatePlotAlignment(axesTypeString) {
         if (axesTypeString === "xy") {
             calibration = new wpd.Calibration(2);
-            calibration.labels = ['X1', 'X2', 'Y1', 'Y2'];
-            calibration.labelPositions = ['N', 'N', 'E', 'E'];
-            calibration.maxPointCount = 4;
+            calibration.labels = ['X1', 'X2', 'Y1', 'Y2', 'Y3'];
+            calibration.labelPositions = ['N', 'N', 'E', 'E', 'E'];
+            calibration.maxPointCount = 5;
             calibrator = new wpd.XYAxesCalibrator(calibration);
         } else if (axesTypeString === "bar") {
             calibration = new wpd.Calibration(2);

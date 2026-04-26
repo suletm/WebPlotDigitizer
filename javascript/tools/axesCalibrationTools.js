@@ -232,6 +232,25 @@ wpd.AlignmentCornersRepainter = class {
                 }, "rgba(0,200,0,0.5)");
             }
 
+            if (count === 4 && this._mousePos) {
+                let y2 = this._calibration.getPoint(3);
+                wpd.graphicsHelper.drawLine({
+                    x: y2.px,
+                    y: y2.py
+                }, {
+                    x: this._mousePos.x,
+                    y: this._mousePos.y
+                }, "rgba(0,100,200,0.5)");
+                const imageSize = wpd.graphicsWidget.getImageSize();
+                wpd.graphicsHelper.drawLine({
+                    x: 0,
+                    y: this._mousePos.y
+                }, {
+                    x: imageSize.width,
+                    y: this._mousePos.y
+                }, "rgba(0,100,200,0.5)");
+            }
+
             if (count === 4) {
                 let x1 = this._calibration.getPoint(0);
                 let x2 = this._calibration.getPoint(1);
@@ -251,6 +270,35 @@ wpd.AlignmentCornersRepainter = class {
                     x: y2.px,
                     y: y2.py
                 }, "rgba(0,200,0,0.3)");
+            }
+
+            if (count === 5) {
+                let x1 = this._calibration.getPoint(0);
+                let x2 = this._calibration.getPoint(1);
+                let y1 = this._calibration.getPoint(2);
+                let y2 = this._calibration.getPoint(3);
+                let y3 = this._calibration.getPoint(4);
+                wpd.graphicsHelper.drawLine({
+                    x: x1.px,
+                    y: x1.py
+                }, {
+                    x: x2.px,
+                    y: x2.py
+                }, "rgba(200,0,0,0.3)");
+                wpd.graphicsHelper.drawLine({
+                    x: y1.px,
+                    y: y1.py
+                }, {
+                    x: y2.px,
+                    y: y2.py
+                }, "rgba(0,200,0,0.3)");
+                wpd.graphicsHelper.drawLine({
+                    x: y2.px,
+                    y: y2.py
+                }, {
+                    x: y3.px,
+                    y: y3.py
+                }, "rgba(0,100,200,0.3)");
             }
         }
 

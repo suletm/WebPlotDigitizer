@@ -26,6 +26,7 @@ wpd.XYAxes = (function() {
             isLogScaleY = false,
             isLogScaleXNegative = false,
             isLogScaleYNegative = false,
+            isPiecewiseY = false,
 
             isXDate = false,
             isYDate = false,
@@ -35,20 +36,28 @@ wpd.XYAxes = (function() {
 
             initialFormattingX, initialFormattingY,
 
+            // piecewise Y state
+            ymid_data = 0,
+            y_axis_dx = 0,
+            y_axis_dy = 0,
+            y_axis_len_sq = 0,
+            t2_piecewise = 0,
+
             x1, x2, x3, x4, y1, y2, y3, y4, xmin, xmax, ymin, ymax,
             a_mat = [0, 0, 0, 0],
             a_inv_mat = [0, 0, 0, 0],
             c_vec = [0, 0],
 
-            processCalibration = function(cal, isLogX, isLogY, noRotationCorrection) {
-                if (cal.getCount() < 4) {
+            processCalibration = function(cal, isLogX, isLogY, noRotationCorrection, isPiecewiseYFlag) {
+                if (cal.getCount() < 5) {
                     return false;
                 }
 
                 var cp1 = cal.getPoint(0),
                     cp2 = cal.getPoint(1),
                     cp3 = cal.getPoint(2),
-                    cp4 = cal.getPoint(3),
+                    cp4 = cal.getPoint(3),  // Y2 (middle, used only for piecewise)
+                    cp5 = cal.getPoint(4),  // Y3
                     ip = new wpd.InputParser(),
                     dat_mat, pix_mat;
 
@@ -58,13 +67,14 @@ wpd.XYAxes = (function() {
                 y2 = cp2.py;
                 x3 = cp3.px;
                 y3 = cp3.py;
-                x4 = cp4.px;
-                y4 = cp4.py;
+                // Use Y3 (cp5) for the calibration matrix, not Y2
+                x4 = cp5.px;
+                y4 = cp5.py;
 
                 xmin = cp1.dx;
                 xmax = cp2.dx;
                 ymin = cp3.dy;
-                ymax = cp4.dy;
+                ymax = cp5.dy;
 
                 // Check for dates, validity etc.
 
@@ -93,7 +103,8 @@ wpd.XYAxes = (function() {
                 initialFormattingY = ip.formatting;
 
                 isLogScaleX = isLogX;
-                isLogScaleY = isLogY;
+                isLogScaleY = isPiecewiseYFlag ? false : isLogY;
+                isPiecewiseY = !!isPiecewiseYFlag;
                 noRotation = noRotationCorrection;
 
                 // If x-axis is log scale
@@ -118,6 +129,17 @@ wpd.XYAxes = (function() {
                         ymin = Math.log(ymin) / Math.log(10);
                         ymax = Math.log(ymax) / Math.log(10);
                     }
+                }
+
+                // Piecewise Y: validate Y2 and compute parametric split point
+                if (isPiecewiseY) {
+                    ymid_data = ip.parse(cp4.dy);
+                    if (!ip.isValid) return false;
+                    y_axis_dx = cp5.px - cp3.px;
+                    y_axis_dy = cp5.py - cp3.py;
+                    y_axis_len_sq = y_axis_dx * y_axis_dx + y_axis_dy * y_axis_dy;
+                    if (y_axis_len_sq === 0) return false;
+                    t2_piecewise = ((cp4.px - cp3.px) * y_axis_dx + (cp4.py - cp3.py) * y_axis_dy) / y_axis_len_sq;
                 }
 
                 dat_mat = [xmin - xmax, 0, 0, ymin - ymax];
@@ -165,9 +187,9 @@ wpd.XYAxes = (function() {
 
         this.calibration = null;
 
-        this.calibrate = function(calib, isLogX, isLogY, noRotationCorrection) {
+        this.calibrate = function(calib, isLogX, isLogY, noRotationCorrection, isPiecewiseYFlag) {
             this.calibration = calib;
-            isCalibrated = processCalibration(calib, isLogX, isLogY, noRotationCorrection);
+            isCalibrated = processCalibration(calib, isLogX, isLogY, noRotationCorrection, isPiecewiseYFlag);
             return isCalibrated;
         };
 
@@ -195,6 +217,17 @@ wpd.XYAxes = (function() {
                 yf = isLogScaleYNegative ? -Math.pow(10, yf) : Math.pow(10, yf);
             }
 
+            // if y-axis is piecewise: project pixel onto Y axis and apply segment mapping
+            if (isPiecewiseY) {
+                var t = ((xp - x3) * y_axis_dx + (yp - y3) * y_axis_dy) / y_axis_len_sq;
+                if (t <= t2_piecewise) {
+                    yf = t2_piecewise !== 0 ? ymin + (t / t2_piecewise) * (ymid_data - ymin) : ymin;
+                } else {
+                    var rem = 1 - t2_piecewise;
+                    yf = rem !== 0 ? ymid_data + ((t - t2_piecewise) / rem) * (ymax - ymid_data) : ymid_data;
+                }
+            }
+
             data[0] = xf;
             data[1] = yf;
 
@@ -207,7 +240,19 @@ wpd.XYAxes = (function() {
             if (isLogScaleX) {
                 x = isLogScaleXNegative ? Math.log(-x) / Math.log(10) : Math.log(x) / Math.log(10);
             }
-            if (isLogScaleY) {
+            if (isPiecewiseY) {
+                // Inverse piecewise: data_y → parametric t → linear-equivalent y for matrix
+                var t;
+                var seg1 = (ymin <= ymid_data) ? (y >= ymin && y <= ymid_data) : (y <= ymin && y >= ymid_data);
+                if (seg1) {
+                    t = t2_piecewise !== 0 && ymid_data !== ymin ? t2_piecewise * (y - ymin) / (ymid_data - ymin) : 0;
+                } else {
+                    var rem = 1 - t2_piecewise;
+                    t = ymax !== ymid_data && rem !== 0 ? t2_piecewise + rem * (y - ymid_data) / (ymax - ymid_data) : t2_piecewise;
+                }
+                // Convert t to the linear data_y equivalent used by the matrix
+                y = ymin + t * (ymax - ymin);
+            } else if (isLogScaleY) {
                 y = isLogScaleYNegative ? Math.log(-y) / Math.log(10) : Math.log(y) / Math.log(10);
             }
 
@@ -269,6 +314,10 @@ wpd.XYAxes = (function() {
             return isLogScaleY;
         };
 
+        this.isPiecewiseY = function() {
+            return isPiecewiseY;
+        };
+
         this.isLogYNegative = function() {
             return isLogScaleYNegative;
         }
@@ -301,7 +350,7 @@ wpd.XYAxes = (function() {
     };
 
     AxesObj.prototype.numCalibrationPointsRequired = function() {
-        return 4;
+        return 5;
     };
 
     AxesObj.prototype.getDimensions = function() {

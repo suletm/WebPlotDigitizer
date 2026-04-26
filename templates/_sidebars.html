@@ -254,7 +254,7 @@
 
 <div id="xy-axes-sidebar" class="sidebar">
     <p class="sidebar-title">XY Axes Calibration</p>
-    <p>Specify four points: X1, X2 on X-axis and Y1, Y2 on Y-axis</p>
+    <p>Specify five points: X1, X2 on X-axis and Y1, Y2, Y3 on Y-axis</p>
     <table style="padding: 10px;">
         <tr>
             <td style="text-align: right;">X-Axis</td>
@@ -285,6 +285,7 @@
                     <option value="linear">Linear</option>
                     <option value="log">Log (any base)</option>
                     <option value="date">Date/Time</option>
+                    <option value="piecewise">Piecewise</option>
                 </select>
             </td>
         </tr>
@@ -294,7 +295,11 @@
         </tr>
         <tr>
             <td style="text-align: right;">Y2</td>
-            <td style="padding-left: 10px;"><input type="text" value="1" style="width:120px;" id="xy-axes-y2" /></td>
+            <td style="padding-left: 10px;"><input type="text" value="0.5" style="width:120px;" id="xy-axes-y2" /></td>
+        </tr>
+        <tr>
+            <td style="text-align: right;">Y3</td>
+            <td style="padding-left: 10px;"><input type="text" value="1" style="width:120px;" id="xy-axes-y3" /></td>
         </tr>
         <tr>
             <td colspan="2">

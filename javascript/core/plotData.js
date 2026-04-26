@@ -212,10 +212,15 @@ wpd.PlotData = class {
         let axes = null;
         if (data.axesType === "XYAxes") {
             axes = new wpd.XYAxes();
-            calibration.labels = ['X1', 'X2', 'Y1', 'Y2'];
-            calibration.labelPositions = ['N', 'N', 'E', 'E'];
-            calibration.maxPointCount = 4;
-            axes.calibrate(calibration, data.axesParameters.isLogX, data.axesParameters.isLogY);
+            calibration.labels = ['X1', 'X2', 'Y1', 'Y2', 'Y3'];
+            calibration.labelPositions = ['N', 'N', 'E', 'E', 'E'];
+            calibration.maxPointCount = 5;
+            // legacy format always has 4 points; duplicate last point as Y3
+            if (data.calibration && data.calibration.length === 4) {
+                const lastPt = data.calibration[3];
+                calibration.addPoint(lastPt.px, lastPt.py, lastPt.dx, lastPt.dy);
+            }
+            axes.calibrate(calibration, data.axesParameters.isLogX, data.axesParameters.isLogY, false, false);
         } else if (data.axesType === "BarAxes") {
             axes = new wpd.BarAxes();
             calibration.labels = ['P1', 'P2'];
@@ -343,10 +348,22 @@ wpd.PlotData = class {
                 let axes = null;
                 if (axData.type === "XYAxes") {
                     axes = new wpd.XYAxes();
-                    calibration.labels = ['X1', 'X2', 'Y1', 'Y2'];
-                    calibration.labelPositions = ['N', 'N', 'E', 'E'];
-                    calibration.maxPointCount = 4;
-                    axes.calibrate(calibration, axData.isLogX, axData.isLogY, axData.noRotation);
+                    if (axData.calibrationPoints && axData.calibrationPoints.length === 5) {
+                        calibration.labels = ['X1', 'X2', 'Y1', 'Y2', 'Y3'];
+                        calibration.labelPositions = ['N', 'N', 'E', 'E', 'E'];
+                        calibration.maxPointCount = 5;
+                        axes.calibrate(calibration, axData.isLogX, axData.isLogY, axData.noRotation, axData.isPiecewiseY);
+                    } else {
+                        // legacy 4-point calibration: duplicate Y2 as Y3
+                        calibration.labels = ['X1', 'X2', 'Y1', 'Y2', 'Y3'];
+                        calibration.labelPositions = ['N', 'N', 'E', 'E', 'E'];
+                        calibration.maxPointCount = 5;
+                        if (axData.calibrationPoints && axData.calibrationPoints.length === 4) {
+                            const lastPt = axData.calibrationPoints[3];
+                            calibration.addPoint(lastPt.px, lastPt.py, lastPt.dx, lastPt.dy);
+                        }
+                        axes.calibrate(calibration, axData.isLogX, axData.isLogY, axData.noRotation, false);
+                    }
                 } else if (axData.type === "BarAxes") {
                     axes = new wpd.BarAxes();
                     calibration.labels = ['P1', 'P2'];
@@ -574,6 +591,7 @@ wpd.PlotData = class {
                 axData.isLogX = axes.isLogX();
                 axData.isLogY = axes.isLogY();
                 axData.noRotation = axes.noRotation();
+                axData.isPiecewiseY = axes.isPiecewiseY();
             } else if (axes instanceof wpd.BarAxes) {
                 axData.type = "BarAxes";
                 axData.isLog = axes.isLog();
