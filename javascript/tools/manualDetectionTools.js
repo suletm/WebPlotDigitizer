@@ -183,32 +183,41 @@ wpd.AddPointsOnLineTool = (function() {
         this.onRemove = function() {
             document.getElementById('add-points-on-line-button').classList.remove('pressed-button');
             firstPoint = null;
+            dataset.unselectAll();
             wpd.graphicsWidget.resetHover();
+            wpd.graphicsWidget.forceHandlerRepaint();
         };
 
         this.onMouseClick = function(ev, pos, imagePos) {
             if (firstPoint === null) {
                 firstPoint = { x: imagePos.x, y: imagePos.y };
                 var index = dataset.addPixel(firstPoint.x, firstPoint.y);
-                wpd.graphicsHelper.drawPoint(firstPoint, dataset.colorRGB.toRGBString());
+                dataset.unselectAll();
+                dataset.selectPixels([index]);
+                wpd.graphicsWidget.resetData();
+                wpd.graphicsWidget.forceHandlerRepaint();
                 wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: index });
             } else {
+                dataset.unselectAll();
                 var dx = imagePos.x - firstPoint.x;
                 var dy = imagePos.y - firstPoint.y;
                 var distance = Math.sqrt(dx * dx + dy * dy);
                 var stepInput = document.getElementById('add-points-on-line-step');
                 var pixelsPerPoint = Math.max(1, parseFloat(stepInput.value) || 20);
                 var numIntervals = Math.max(1, Math.round(distance / pixelsPerPoint));
+                var lastIdx;
 
                 for (var i = 1; i <= numIntervals; i++) {
                     var t = i / numIntervals;
                     var pt = { x: firstPoint.x + dx * t, y: firstPoint.y + dy * t };
-                    var idx = dataset.addPixel(pt.x, pt.y);
-                    wpd.graphicsHelper.drawPoint(pt, dataset.colorRGB.toRGBString());
-                    wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: idx });
+                    lastIdx = dataset.addPixel(pt.x, pt.y);
+                    wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: lastIdx });
                 }
 
+                dataset.selectPixels([lastIdx]);
                 wpd.graphicsWidget.resetHover();
+                wpd.graphicsWidget.resetData();
+                wpd.graphicsWidget.forceHandlerRepaint();
                 wpd.dataPointCounter.setCount(dataset.getCount());
                 firstPoint = null;
             }
