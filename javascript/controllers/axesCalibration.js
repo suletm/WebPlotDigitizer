@@ -663,7 +663,7 @@ wpd.alignAxes = (function() {
         // axes (in the file and/or page) and datasets do not yet exist
         if (axesColl.length === 1 && datasetColl.length === 0 && suppressDatasetCreation != true) {
             let dataset = new wpd.Dataset();
-            dataset.name = 'Default Dataset';
+            dataset.name = 'Dataset 0';
             const count = wpd.dataSeriesManagement.getDatasetWithNameCount(dataset.name);
             if (count > 0) dataset.name += ' ' + (count + 1);
 

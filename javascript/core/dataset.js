@@ -35,7 +35,7 @@ wpd.Dataset = class {
         this._tuples = [];
 
         // public:
-        this.name = 'Default Dataset';
+        this.name = 'Dataset 0';
         this.variableNames = ['x', 'y'];
         this.colorRGB = new wpd.Color(200, 0, 0);
     }
