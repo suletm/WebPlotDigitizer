@@ -234,7 +234,38 @@ wpd.AddPointsOnLineTool = (function() {
         };
 
         this.onKeyDown = function(ev) {
-            if (wpd.acquireData.isToolSwitchKey(ev.keyCode)) {
+            if (firstPoint !== null) {
+                var firstPtIndex = dataset.getCount() - 1;
+                var firstPt = dataset.getPixel(firstPtIndex);
+                var stepSize = 0.5 / wpd.graphicsWidget.getZoomRatio();
+
+                const currentRotation = wpd.graphicsWidget.getRotation();
+                let { x, y } = wpd.graphicsWidget.getRotatedCoordinates(0, currentRotation, firstPt.x, firstPt.y);
+
+                if (wpd.keyCodes.isUp(ev.keyCode)) {
+                    y = y - stepSize;
+                } else if (wpd.keyCodes.isDown(ev.keyCode)) {
+                    y = y + stepSize;
+                } else if (wpd.keyCodes.isLeft(ev.keyCode)) {
+                    x = x - stepSize;
+                } else if (wpd.keyCodes.isRight(ev.keyCode)) {
+                    x = x + stepSize;
+                } else if (wpd.acquireData.isToolSwitchKey(ev.keyCode)) {
+                    wpd.acquireData.switchToolOnKeyPress(String.fromCharCode(ev.keyCode).toLowerCase());
+                    return;
+                } else {
+                    return;
+                }
+
+                ({ x, y } = wpd.graphicsWidget.getRotatedCoordinates(currentRotation, 0, x, y));
+
+                firstPoint = { x: x, y: y };
+                dataset.setPixelAt(firstPtIndex, x, y);
+                wpd.graphicsWidget.resetData();
+                wpd.graphicsWidget.forceHandlerRepaint();
+                wpd.graphicsWidget.updateZoomToImagePosn(x, y);
+                ev.preventDefault();
+            } else if (wpd.acquireData.isToolSwitchKey(ev.keyCode)) {
                 wpd.acquireData.switchToolOnKeyPress(String.fromCharCode(ev.keyCode).toLowerCase());
             }
         };
