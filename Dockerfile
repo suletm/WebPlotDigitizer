@@ -19,6 +19,8 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 COPY . .
 
 RUN apk update && apk add python3 py3-jinja2 py3-babel
+# Auxiliary packages needed for development
+RUN apk add bash curl vim
 
 # Run the build script.
 RUN npm run build
