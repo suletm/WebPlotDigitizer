@@ -171,6 +171,143 @@ wpd.ManualSelectionTool = (function() {
     return Tool;
 })();
 
+wpd.AddPointsOnLineTool = (function() {
+    var Tool = function(axes, dataset) {
+        var firstPoint = null;
+
+        this.onAttach = function() {
+            document.getElementById('add-points-on-line-button').classList.add('pressed-button');
+            wpd.graphicsWidget.setRepainter(new wpd.DataPointsRepainter(axes, dataset));
+        };
+
+        this.onRemove = function() {
+            document.getElementById('add-points-on-line-button').classList.remove('pressed-button');
+            firstPoint = null;
+            dataset.unselectAll();
+            wpd.graphicsWidget.resetHover();
+            wpd.graphicsWidget.forceHandlerRepaint();
+        };
+
+        this.onMouseClick = function(ev, pos, imagePos) {
+            if (firstPoint === null) {
+                firstPoint = { x: imagePos.x, y: imagePos.y };
+                var index = dataset.addPixel(firstPoint.x, firstPoint.y);
+                dataset.unselectAll();
+                dataset.selectPixels([index]);
+                wpd.graphicsWidget.resetData();
+                wpd.graphicsWidget.forceHandlerRepaint();
+                wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: index });
+            } else {
+                dataset.unselectAll();
+                var dx = imagePos.x - firstPoint.x;
+                var dy = imagePos.y - firstPoint.y;
+                var distance = Math.sqrt(dx * dx + dy * dy);
+                var stepInput = document.getElementById('add-points-on-line-step');
+                var pixelsPerPoint = Math.max(1, parseFloat(stepInput.value) || 20);
+                var numIntervals = Math.max(1, Math.round(distance / pixelsPerPoint));
+                var lastIdx;
+
+                for (var i = 1; i <= numIntervals; i++) {
+                    var t = i / numIntervals;
+                    var pt = { x: firstPoint.x + dx * t, y: firstPoint.y + dy * t };
+                    lastIdx = dataset.addPixel(pt.x, pt.y);
+                    wpd.events.dispatch("wpd.dataset.point.add", { axes: axes, dataset: dataset, index: lastIdx });
+                }
+
+                dataset.selectPixels([lastIdx]);
+                wpd.graphicsWidget.resetHover();
+                wpd.graphicsWidget.resetData();
+                wpd.graphicsWidget.forceHandlerRepaint();
+                wpd.dataPointCounter.setCount(dataset.getCount());
+                firstPoint = null;
+            }
+            wpd.graphicsWidget.updateZoomOnEvent(ev);
+        };
+
+        this.onMouseMove = function(ev, pos, imagePos) {
+            if (firstPoint === null) return;
+
+            wpd.graphicsWidget.resetHover();
+
+            var ctx = wpd.graphicsWidget.getAllContexts();
+            var dpr = window.devicePixelRatio;
+            var canvasP1 = wpd.graphicsWidget.imageToCanvasPx(firstPoint.x, firstPoint.y);
+            var canvasP2 = wpd.graphicsWidget.imageToCanvasPx(imagePos.x, imagePos.y);
+
+            // Draw on main hover canvas
+            ctx.hoverCtx.beginPath();
+            ctx.hoverCtx.strokeStyle = 'rgb(0, 255, 0)';
+            ctx.hoverCtx.lineWidth = 2 * dpr;
+            ctx.hoverCtx.setLineDash([5 * dpr, 5 * dpr]);
+            ctx.hoverCtx.moveTo(canvasP1.x, canvasP1.y);
+            ctx.hoverCtx.lineTo(canvasP2.x, canvasP2.y);
+            ctx.hoverCtx.stroke();
+            ctx.hoverCtx.setLineDash([]);
+
+            // Draw on zoom canvas — the zoom view only composites oriImageCtx+oriDataCtx,
+            // so we draw directly on zoomCanvas after the zoom image has been rendered.
+            // The zoom center is imagePos (cursor), scale is zoomRatio canvas-px per image-px.
+            var zCanvas = document.getElementById('zoomCanvas');
+            var zctx = zCanvas.getContext('2d');
+            var zsize = wpd.zoomView.getSize();
+            var zratio = wpd.zoomView.getZoomRatio();
+            var zp1x = zsize.width / 2 + (firstPoint.x - imagePos.x) * zratio;
+            var zp1y = zsize.height / 2 + (firstPoint.y - imagePos.y) * zratio;
+            var zp2x = zsize.width / 2;
+            var zp2y = zsize.height / 2;
+
+            zctx.beginPath();
+            zctx.strokeStyle = 'rgb(0, 255, 0)';
+            zctx.lineWidth = 2 * dpr;
+            zctx.setLineDash([5 * dpr, 5 * dpr]);
+            zctx.moveTo(zp1x, zp1y);
+            zctx.lineTo(zp2x, zp2y);
+            zctx.stroke();
+            zctx.setLineDash([]);
+        };
+
+        this.onKeyDown = function(ev) {
+            if (wpd.acquireData.isToolSwitchKey(ev.keyCode)) {
+                wpd.acquireData.switchToolOnKeyPress(String.fromCharCode(ev.keyCode).toLowerCase());
+                return;
+            }
+
+            var ptIndex = dataset.getCount() - 1;
+            if (ptIndex < 0) return;
+
+            var pt = firstPoint !== null ? firstPoint : dataset.getPixel(ptIndex);
+            var stepSize = 0.5 / wpd.graphicsWidget.getZoomRatio();
+
+            const currentRotation = wpd.graphicsWidget.getRotation();
+            let { x, y } = wpd.graphicsWidget.getRotatedCoordinates(0, currentRotation, pt.x, pt.y);
+
+            if (wpd.keyCodes.isUp(ev.keyCode)) {
+                y = y - stepSize;
+            } else if (wpd.keyCodes.isDown(ev.keyCode)) {
+                y = y + stepSize;
+            } else if (wpd.keyCodes.isLeft(ev.keyCode)) {
+                x = x - stepSize;
+            } else if (wpd.keyCodes.isRight(ev.keyCode)) {
+                x = x + stepSize;
+            } else {
+                return;
+            }
+
+            ({ x, y } = wpd.graphicsWidget.getRotatedCoordinates(currentRotation, 0, x, y));
+
+            if (firstPoint !== null) {
+                firstPoint = { x: x, y: y };
+            }
+            dataset.setPixelAt(ptIndex, x, y);
+            wpd.graphicsWidget.resetData();
+            wpd.graphicsWidget.forceHandlerRepaint();
+            wpd.graphicsWidget.updateZoomToImagePosn(x, y);
+            ev.preventDefault();
+        };
+    };
+    return Tool;
+})();
+
 wpd.DeleteDataPointTool = (function() {
     var Tool = function(axes, dataset) {
         var ctx = wpd.graphicsWidget.getAllContexts();

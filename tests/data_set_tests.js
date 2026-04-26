@@ -40,7 +40,7 @@ QUnit.test("Initialization", (assert) => {
         _metadata: {},
         _groupNames: [],
         _tuples: [],
-        name: 'Default Dataset',
+        name: 'Dataset 0',
         variableNames: ['x', 'y'],
         colorRGB: new wpd.Color(200, 0, 0)
     };
