@@ -38,6 +38,15 @@ wpd.AxesCornersTool = class {
     }
 
     onMouseMove(ev, pos, imagePos) {
+        if (this.isCapturingCorners && this._calibration.getCount() > 0) {
+            const repainter = wpd.graphicsWidget.getRepainter();
+            if (repainter && repainter.updateMousePos) {
+                repainter.updateMousePos(imagePos.x, imagePos.y);
+                wpd.graphicsWidget.forceHandlerRepaint();
+            }
+            return;
+        }
+
         if (this._calibration.getCount() != this._calibration.maxPointCount) {
             return;
         }
@@ -145,6 +154,11 @@ wpd.AlignmentCornersRepainter = class {
         this._calibration = calibration;
         this.painterName = 'AlignmentCornersReptainer';
         this._axesTypeString = axesTypeString;
+        this._mousePos = null;
+    }
+
+    updateMousePos(x, y) {
+        this._mousePos = { x, y };
     }
 
     onForcedRedraw() {
@@ -178,7 +192,31 @@ wpd.AlignmentCornersRepainter = class {
 
     drawAxes() {
         if (this._axesTypeString === "xy") {
-            if (this._calibration.getCount() === 4) {
+            const count = this._calibration.getCount();
+
+            if (count === 1 && this._mousePos) {
+                let x1 = this._calibration.getPoint(0);
+                wpd.graphicsHelper.drawLine({
+                    x: x1.px,
+                    y: x1.py
+                }, {
+                    x: this._mousePos.x,
+                    y: this._mousePos.y
+                }, "rgba(200,0,0,0.5)");
+            }
+
+            if (count === 3 && this._mousePos) {
+                let y1 = this._calibration.getPoint(2);
+                wpd.graphicsHelper.drawLine({
+                    x: y1.px,
+                    y: y1.py
+                }, {
+                    x: this._mousePos.x,
+                    y: this._mousePos.y
+                }, "rgba(0,200,0,0.5)");
+            }
+
+            if (count === 4) {
                 let x1 = this._calibration.getPoint(0);
                 let x2 = this._calibration.getPoint(1);
                 let y1 = this._calibration.getPoint(2);
