@@ -196,7 +196,9 @@ wpd.AddPointsOnLineTool = (function() {
                 var dx = imagePos.x - firstPoint.x;
                 var dy = imagePos.y - firstPoint.y;
                 var distance = Math.sqrt(dx * dx + dy * dy);
-                var numIntervals = Math.max(1, Math.round(distance / 10));
+                var stepInput = document.getElementById('add-points-on-line-step');
+                var pixelsPerPoint = Math.max(1, parseFloat(stepInput.value) || 20);
+                var numIntervals = Math.max(1, Math.round(distance / pixelsPerPoint));
 
                 for (var i = 1; i <= numIntervals; i++) {
                     var t = i / numIntervals;
