@@ -126,7 +126,7 @@ wpd.acquireData = (function() {
             case 'a':
                 manualSelection();
                 break;
-            case 'l':
+            case 'z':
                 addPointsOnLine();
                 break;
             case 's':
@@ -143,7 +143,7 @@ wpd.acquireData = (function() {
     function isToolSwitchKey(keyCode) {
         if (wpd.keyCodes.isAlphabet(keyCode, 'a') || wpd.keyCodes.isAlphabet(keyCode, 's') ||
             wpd.keyCodes.isAlphabet(keyCode, 'd') || wpd.keyCodes.isAlphabet(keyCode, 'e') ||
-            wpd.keyCodes.isAlphabet(keyCode, 'l')) {
+            wpd.keyCodes.isAlphabet(keyCode, 'z')) {
             return true;
         }
         return false;
