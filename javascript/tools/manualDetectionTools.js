@@ -234,6 +234,7 @@ wpd.AddPointsOnLineTool = (function() {
             var canvasP1 = wpd.graphicsWidget.imageToCanvasPx(firstPoint.x, firstPoint.y);
             var canvasP2 = wpd.graphicsWidget.imageToCanvasPx(imagePos.x, imagePos.y);
 
+            // Draw on main hover canvas
             ctx.hoverCtx.beginPath();
             ctx.hoverCtx.strokeStyle = 'rgb(0, 255, 0)';
             ctx.hoverCtx.lineWidth = 2 * dpr;
@@ -242,6 +243,27 @@ wpd.AddPointsOnLineTool = (function() {
             ctx.hoverCtx.lineTo(canvasP2.x, canvasP2.y);
             ctx.hoverCtx.stroke();
             ctx.hoverCtx.setLineDash([]);
+
+            // Draw on zoom canvas — the zoom view only composites oriImageCtx+oriDataCtx,
+            // so we draw directly on zoomCanvas after the zoom image has been rendered.
+            // The zoom center is imagePos (cursor), scale is zoomRatio canvas-px per image-px.
+            var zCanvas = document.getElementById('zoomCanvas');
+            var zctx = zCanvas.getContext('2d');
+            var zsize = wpd.zoomView.getSize();
+            var zratio = wpd.zoomView.getZoomRatio();
+            var zp1x = zsize.width / 2 + (firstPoint.x - imagePos.x) * zratio;
+            var zp1y = zsize.height / 2 + (firstPoint.y - imagePos.y) * zratio;
+            var zp2x = zsize.width / 2;
+            var zp2y = zsize.height / 2;
+
+            zctx.beginPath();
+            zctx.strokeStyle = 'rgb(0, 255, 0)';
+            zctx.lineWidth = 2 * dpr;
+            zctx.setLineDash([5 * dpr, 5 * dpr]);
+            zctx.moveTo(zp1x, zp1y);
+            zctx.lineTo(zp2x, zp2y);
+            zctx.stroke();
+            zctx.setLineDash([]);
         };
 
         this.onKeyDown = function(ev) {
