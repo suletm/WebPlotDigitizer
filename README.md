@@ -1,3 +1,18 @@
+# Important Disclaimer
+
+This fork is experimental and is strictly NOT intended for use in production environments. It was created as an experimental playground for adding & testing new features. It has no affiliation with the official WebPlotDigitizer tool, except it's just a fork of it. If you plan to use WebPlotDigitizer, refer to the official repository here: https://github.com/automeris-io/WebPlotDigitizer
+
+By using this software, you acknowledge and agree to the following:
+
+No Warranty: This experimental tool is provided "as is," without warranty of any kind, express or implied.
+
+Use of this experimental tool is entirely at your own risk. It may contain bugs, undergo significant changes, or produce unexpected results.
+
+The author of this fork shall not be held responsible or liable for any damages, data loss, system instability, or other issues arising from the use or inability to use this software.
+
+The following sections are included from the official README.md.
+
+
 # WebPlotDigitizer
 
 A large quantity of useful data is locked away in images of data visualizations. WebPlotDigitizer is a computer vision assisted software that helps extract numerical data from images of a variety of data visualizations.
