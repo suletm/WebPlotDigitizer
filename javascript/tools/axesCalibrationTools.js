@@ -203,6 +203,14 @@ wpd.AlignmentCornersRepainter = class {
                     x: this._mousePos.x,
                     y: this._mousePos.y
                 }, "rgba(200,0,0,0.5)");
+                const imageSize = wpd.graphicsWidget.getImageSize();
+                wpd.graphicsHelper.drawLine({
+                    x: this._mousePos.x,
+                    y: 0
+                }, {
+                    x: this._mousePos.x,
+                    y: imageSize.height
+                }, "rgba(200,0,0,0.5)");
             }
 
             if (count === 3 && this._mousePos) {
@@ -212,6 +220,14 @@ wpd.AlignmentCornersRepainter = class {
                     y: y1.py
                 }, {
                     x: this._mousePos.x,
+                    y: this._mousePos.y
+                }, "rgba(0,200,0,0.5)");
+                const imageSize = wpd.graphicsWidget.getImageSize();
+                wpd.graphicsHelper.drawLine({
+                    x: 0,
+                    y: this._mousePos.y
+                }, {
+                    x: imageSize.width,
                     y: this._mousePos.y
                 }, "rgba(0,200,0,0.5)");
             }
