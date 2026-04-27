@@ -215,7 +215,7 @@ wpd.PlotData = class {
             calibration.labels = ['X1', 'X2', 'Y1', 'Y2'];
             calibration.labelPositions = ['N', 'N', 'E', 'E'];
             calibration.maxPointCount = 4;
-            axes.calibrate(calibration, data.axesParameters.isLogX, data.axesParameters.isLogY);
+            axes.calibrate(calibration, data.axesParameters.isLogX, data.axesParameters.isLogY, false, false, false);
         } else if (data.axesType === "BarAxes") {
             axes = new wpd.BarAxes();
             calibration.labels = ['P1', 'P2'];
@@ -343,10 +343,17 @@ wpd.PlotData = class {
                 let axes = null;
                 if (axData.type === "XYAxes") {
                     axes = new wpd.XYAxes();
-                    calibration.labels = ['X1', 'X2', 'Y1', 'Y2'];
-                    calibration.labelPositions = ['N', 'N', 'E', 'E'];
-                    calibration.maxPointCount = 4;
-                    axes.calibrate(calibration, axData.isLogX, axData.isLogY, axData.noRotation);
+                    const isPiecewiseY = !!axData.isPiecewiseY;
+                    const isPiecewiseX = !!axData.isPiecewiseX;
+                    const xyLabels = ['X1', 'X2'];
+                    const xyLabelPos = ['N', 'N'];
+                    if (isPiecewiseX) { xyLabels.push('X3'); xyLabelPos.push('N'); }
+                    xyLabels.push('Y1', 'Y2'); xyLabelPos.push('E', 'E');
+                    if (isPiecewiseY) { xyLabels.push('Y3'); xyLabelPos.push('E'); }
+                    calibration.labels = xyLabels;
+                    calibration.labelPositions = xyLabelPos;
+                    calibration.maxPointCount = 4 + (isPiecewiseX ? 1 : 0) + (isPiecewiseY ? 1 : 0);
+                    axes.calibrate(calibration, axData.isLogX, axData.isLogY, axData.noRotation, isPiecewiseY, isPiecewiseX);
                 } else if (axData.type === "BarAxes") {
                     axes = new wpd.BarAxes();
                     calibration.labels = ['P1', 'P2'];
@@ -574,6 +581,8 @@ wpd.PlotData = class {
                 axData.isLogX = axes.isLogX();
                 axData.isLogY = axes.isLogY();
                 axData.noRotation = axes.noRotation();
+                axData.isPiecewiseY = axes.isPiecewiseY();
+                axData.isPiecewiseX = axes.isPiecewiseX();
             } else if (axes instanceof wpd.BarAxes) {
                 axData.type = "BarAxes";
                 axData.isLog = axes.isLog();
