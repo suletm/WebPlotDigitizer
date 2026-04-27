@@ -254,15 +254,16 @@
 
 <div id="xy-axes-sidebar" class="sidebar">
     <p class="sidebar-title">XY Axes Calibration</p>
-    <p>Specify X1, X2 on X-axis and Y1, Y2 on Y-axis (Y3 also required for Piecewise scale)</p>
+    <p>Specify X1, X2 on X-axis and Y1, Y2 on Y-axis (X3/Y3 also required for Piecewise scale)</p>
     <table style="padding: 10px;">
         <tr>
             <td style="text-align: right;">X-Axis</td>
             <td style="padding-left: 10px;">
-                <select style="width:120px;" id="xy-axes-xscale">
+                <select style="width:120px;" id="xy-axes-xscale" onchange="wpd.alignAxes.xscaleChanged();">
                     <option value="linear">Linear</option>
                     <option value="log">Log (any base)</option>
                     <option value="date">Date/Time</option>
+                    <option value="piecewise">Piecewise</option>
                 </select>
             </td>
         </tr>
@@ -272,7 +273,11 @@
         </tr>
         <tr>
             <td style="text-align: right;">X2</td>
-            <td style="padding-left: 10px;"><input type="text" value="1" style="width:120px;" id="xy-axes-x2" /></td>
+            <td style="padding-left: 10px;"><input type="text" value="0.5" style="width:120px;" id="xy-axes-x2" /></td>
+        </tr>
+        <tr id="xy-axes-x3-row" style="display:none;">
+            <td style="text-align: right;">X3</td>
+            <td style="padding-left: 10px;"><input type="text" value="1" style="width:120px;" id="xy-axes-x3" /></td>
         </tr>
         <tr>
             <td>&nbsp;</td>

@@ -32,16 +32,29 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
         let tool = new wpd.AxesCornersTool(this._calibration, this._isEditing);
         wpd.graphicsWidget.setTool(tool);
         wpd.sidebar.show("xy-axes-sidebar");
+        document.getElementById('xy-axes-x3-row').style.display = 'none';
+        document.getElementById('xy-axes-y3-row').style.display = 'none';
         if (this._isEditing) {
             let axes = wpd.tree.getActiveAxes();
             let prevCal = axes.calibration;
-            if (prevCal.getCount() >= 4) {
+            const isPiecewiseX = axes.isPiecewiseX();
+            const isPiecewiseY = axes.isPiecewiseY();
+            const minCount = 4 + (isPiecewiseX ? 1 : 0) + (isPiecewiseY ? 1 : 0);
+            if (prevCal.getCount() >= minCount) {
+                // Dynamic indices: X3 (if present) comes before Y1/Y2/Y3
+                const y1Idx = isPiecewiseX ? 3 : 2;
+                const y2Idx = isPiecewiseX ? 4 : 3;
+                const y3Idx = isPiecewiseY ? (isPiecewiseX ? 5 : 4) : -1;
                 document.getElementById('xy-axes-x1').value = prevCal.getPoint(0).dx;
                 document.getElementById('xy-axes-x2').value = prevCal.getPoint(1).dx;
-                document.getElementById('xy-axes-y1').value = prevCal.getPoint(2).dy;
-                document.getElementById('xy-axes-y2').value = prevCal.getPoint(3).dy;
+                document.getElementById('xy-axes-y1').value = prevCal.getPoint(y1Idx).dy;
+                document.getElementById('xy-axes-y2').value = prevCal.getPoint(y2Idx).dy;
                 const $xscale = document.getElementById('xy-axes-xscale');
-                if (axes.isLogX()) {
+                if (isPiecewiseX) {
+                    $xscale.value = "piecewise";
+                    document.getElementById('xy-axes-x3').value = prevCal.getPoint(2).dx;  // X3 always at index 2
+                    document.getElementById('xy-axes-x3-row').style.display = '';
+                } else if (axes.isLogX()) {
                     $xscale.value = "log";
                 } else if (axes.isDate(0)) {
                     $xscale.value = "date";
@@ -49,9 +62,10 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
                     $xscale.value = "linear";
                 }
                 const $yscale = document.getElementById('xy-axes-yscale');
-                const isPiecewise = axes.isPiecewiseY();
-                if (isPiecewise) {
+                if (isPiecewiseY) {
                     $yscale.value = "piecewise";
+                    document.getElementById('xy-axes-y3').value = prevCal.getPoint(y3Idx).dy;
+                    document.getElementById('xy-axes-y3-row').style.display = '';
                 } else if (axes.isLogY()) {
                     $yscale.value = "log";
                 } else if (axes.isDate(1)) {
@@ -59,19 +73,9 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
                 } else {
                     $yscale.value = "linear";
                 }
-                const y3Row = document.getElementById('xy-axes-y3-row');
-                if (isPiecewise && prevCal.getCount() >= 5) {
-                    document.getElementById('xy-axes-y3').value = prevCal.getPoint(4).dy;
-                    y3Row.style.display = '';
-                    this._calibration.maxPointCount = 5;
-                } else {
-                    y3Row.style.display = 'none';
-                    this._calibration.maxPointCount = 4;
-                }
+                wpd.alignAxes.updateXYCalibrationConfig(isPiecewiseX, isPiecewiseY);
                 document.getElementById('xy-axes-skip-rotation').checked = axes.noRotation();
             }
-        } else {
-            document.getElementById('xy-axes-y3-row').style.display = 'none';
         }
         if (this._calibration.getCount() < this._calibration.maxPointCount) {
             document.getElementById("xy-axes-calibrate").disabled = true;
@@ -80,18 +84,20 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
 
     align() {
         let xmin = document.getElementById('xy-axes-x1').value;
-        let xmax = document.getElementById('xy-axes-x2').value;
+        let x2val = document.getElementById('xy-axes-x2').value;
         let ymin = document.getElementById('xy-axes-y1').value;
         let y2val = document.getElementById('xy-axes-y2').value;
         const $xscale = document.getElementById('xy-axes-xscale');
         const $yscale = document.getElementById('xy-axes-yscale');
         let xlog = ($xscale.value === "log");
         let ylog = ($yscale.value === "log");
+        let xpiecewise = ($xscale.value === "piecewise");
         let ypiecewise = ($yscale.value === "piecewise");
         let noRotation = document.getElementById('xy-axes-skip-rotation').checked;
         let axes = this._isEditing ? wpd.tree.getActiveAxes() : new wpd.XYAxes();
 
-        // For non-piecewise Y2 is the max; for piecewise Y2 is the middle and Y3 is the max
+        // For piecewise X/Y, the 2nd value (X2/Y2) is the middle; X3/Y3 is the end
+        let xmax = xpiecewise ? document.getElementById('xy-axes-x3').value : x2val;
         let ymax = ypiecewise ? document.getElementById('xy-axes-y3').value : y2val;
 
         // validate log scale values
@@ -103,16 +109,23 @@ wpd.XYAxesCalibrator = class extends wpd.AxesCalibrator {
             return false;
         }
 
-        this._calibration.setDataAt(0, xmin, ymin);
-        this._calibration.setDataAt(1, xmax, ymin);
-        this._calibration.setDataAt(2, xmin, ymin);
-        if (ypiecewise) {
-            this._calibration.setDataAt(3, xmin, y2val);
-            this._calibration.setDataAt(4, xmax, ymax);
-        } else {
-            this._calibration.setDataAt(3, xmax, ymax);
+        // Layout: [X1(0), X2(1), (X3?)(2), Y1(2or3), Y2(3or4), (Y3?)(4or5)]
+        const y1Idx = xpiecewise ? 3 : 2;
+        const y2Idx = xpiecewise ? 4 : 3;
+        this._calibration.setDataAt(0, xmin, ymin);                          // X1
+        this._calibration.setDataAt(1, xpiecewise ? x2val : xmax, ymin);    // X2: middle if piecewise X, else end
+        if (xpiecewise) {
+            this._calibration.setDataAt(2, xmax, ymin);                      // X3: end
         }
-        if (!axes.calibrate(this._calibration, xlog, ylog, noRotation, ypiecewise)) {
+        this._calibration.setDataAt(y1Idx, xmin, ymin);                      // Y1
+        if (ypiecewise) {
+            this._calibration.setDataAt(y2Idx, xmin, y2val);                 // Y2: middle
+            this._calibration.setDataAt(y2Idx + 1, xmax, ymax);             // Y3: end
+        } else {
+            this._calibration.setDataAt(y2Idx, xmax, ymax);                  // Y2: end
+        }
+
+        if (!axes.calibrate(this._calibration, xlog, ylog, noRotation, ypiecewise, xpiecewise)) {
             wpd.messagePopup.show(wpd.gettext('calibration-invalid-inputs'),
                 wpd.gettext('calibration-enter-valid'),
                 wpd.alignAxes.getCornerValues);
@@ -370,9 +383,9 @@ wpd.alignAxes = (function() {
     function initiatePlotAlignment(axesTypeString) {
         if (axesTypeString === "xy") {
             calibration = new wpd.Calibration(2);
-            calibration.labels = ['X1', 'X2', 'Y1', 'Y2', 'Y3'];
-            calibration.labelPositions = ['N', 'N', 'E', 'E', 'E'];
-            calibration.maxPointCount = 4;  // default for linear; bumped to 5 for piecewise
+            calibration.labels = ['X1', 'X2', 'Y1', 'Y2'];
+            calibration.labelPositions = ['N', 'N', 'E', 'E'];
+            calibration.maxPointCount = 4;  // default; bumped by xscaleChanged/yscaleChanged for piecewise
             calibrator = new wpd.XYAxesCalibrator(calibration);
         } else if (axesTypeString === "bar") {
             calibration = new wpd.Calibration(2);
@@ -661,17 +674,46 @@ wpd.alignAxes = (function() {
         return fullName;
     }
 
-    function yscaleChanged() {
-        const isPiecewise = document.getElementById('xy-axes-yscale').value === 'piecewise';
-        document.getElementById('xy-axes-y3-row').style.display = isPiecewise ? '' : 'none';
+    function updateXYCalibrationConfig(isPiecewiseX, isPiecewiseY) {
         if (calibration == null) return;
-        calibration.maxPointCount = isPiecewise ? 5 : 4;
+        // Layout: X1, X2, [X3 if piecewise X], Y1, Y2, [Y3 if piecewise Y]
+        const labels = ['X1', 'X2'];
+        const labelPositions = ['N', 'N'];
+        if (isPiecewiseX) { labels.push('X3'); labelPositions.push('N'); }
+        labels.push('Y1', 'Y2'); labelPositions.push('E', 'E');
+        if (isPiecewiseY) { labels.push('Y3'); labelPositions.push('E'); }
+        calibration.labels = labels;
+        calibration.labelPositions = labelPositions;
+        calibration.maxPointCount = 4 + (isPiecewiseX ? 1 : 0) + (isPiecewiseY ? 1 : 0);
+    }
+
+    function xscaleChanged() {
+        const isPiecewiseX = document.getElementById('xy-axes-xscale').value === 'piecewise';
+        const isPiecewiseY = document.getElementById('xy-axes-yscale').value === 'piecewise';
+        document.getElementById('xy-axes-x3-row').style.display = isPiecewiseX ? '' : 'none';
+        updateXYCalibrationConfig(isPiecewiseX, isPiecewiseY);
+        if (calibration == null) return;
         const count = calibration.getCount();
         const btn = document.getElementById('xy-axes-calibrate');
-        if (isPiecewise) {
-            if (count < 5) btn.disabled = true;
+        if (count < calibration.maxPointCount) {
+            btn.disabled = true;
         } else {
-            if (count >= 4) btn.disabled = false;
+            btn.disabled = false;
+        }
+    }
+
+    function yscaleChanged() {
+        const isPiecewiseX = document.getElementById('xy-axes-xscale').value === 'piecewise';
+        const isPiecewiseY = document.getElementById('xy-axes-yscale').value === 'piecewise';
+        document.getElementById('xy-axes-y3-row').style.display = isPiecewiseY ? '' : 'none';
+        updateXYCalibrationConfig(isPiecewiseX, isPiecewiseY);
+        if (calibration == null) return;
+        const count = calibration.getCount();
+        const btn = document.getElementById('xy-axes-calibrate');
+        if (count < calibration.maxPointCount) {
+            btn.disabled = true;
+        } else {
+            btn.disabled = false;
         }
     }
 
@@ -726,6 +768,8 @@ wpd.alignAxes = (function() {
         getCornerValues: getCornerValues,
         pickCorners: pickCorners,
         align: align,
+        updateXYCalibrationConfig: updateXYCalibrationConfig,
+        xscaleChanged: xscaleChanged,
         yscaleChanged: yscaleChanged,
         editAlignment: editAlignment,
         reloadCalibrationForEditing: reloadCalibrationForEditing,

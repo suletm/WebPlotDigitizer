@@ -195,112 +195,65 @@ wpd.AlignmentCornersRepainter = class {
     drawAxes() {
         if (this._axesTypeString === "xy") {
             const count = this._calibration.getCount();
+            const labels = this._calibration.labels || [];
+            const imageSize = wpd.graphicsWidget.getImageSize();
 
-            if (count === 1 && this._mousePos) {
-                let x1 = this._calibration.getPoint(0);
-                wpd.graphicsHelper.drawLine({
-                    x: x1.px,
-                    y: x1.py
-                }, {
-                    x: this._mousePos.x,
-                    y: this._mousePos.y
-                }, "rgba(200,0,0,0.5)");
-                const imageSize = wpd.graphicsWidget.getImageSize();
-                wpd.graphicsHelper.drawLine({
-                    x: this._mousePos.x,
-                    y: 0
-                }, {
-                    x: this._mousePos.x,
-                    y: imageSize.height
-                }, "rgba(200,0,0,0.5)");
+            // Draw guide for the next point to be placed, based on its label
+            const nextLabel = count < labels.length ? labels[count] : null;
+            if (this._mousePos && nextLabel) {
+                if (nextLabel === 'X2') {
+                    // Vertical guide from X1
+                    let p = this._calibration.getPoint(0);
+                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(200,0,0,0.5)");
+                    wpd.graphicsHelper.drawLine({x: this._mousePos.x, y: 0}, {x: this._mousePos.x, y: imageSize.height}, "rgba(200,0,0,0.5)");
+                } else if (nextLabel === 'X3') {
+                    // Vertical guide from X2
+                    let p = this._calibration.getPoint(1);
+                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(150,0,200,0.5)");
+                    wpd.graphicsHelper.drawLine({x: this._mousePos.x, y: 0}, {x: this._mousePos.x, y: imageSize.height}, "rgba(150,0,200,0.5)");
+                } else if (nextLabel === 'Y2') {
+                    // Horizontal guide from Y1
+                    let p = this._calibration.getPoint(labels.indexOf('Y1'));
+                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(0,200,0,0.5)");
+                    wpd.graphicsHelper.drawLine({x: 0, y: this._mousePos.y}, {x: imageSize.width, y: this._mousePos.y}, "rgba(0,200,0,0.5)");
+                } else if (nextLabel === 'Y3') {
+                    // Horizontal guide from Y2
+                    let p = this._calibration.getPoint(labels.indexOf('Y2'));
+                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(0,100,200,0.5)");
+                    wpd.graphicsHelper.drawLine({x: 0, y: this._mousePos.y}, {x: imageSize.width, y: this._mousePos.y}, "rgba(0,100,200,0.5)");
+                }
             }
 
-            if (count === 3 && this._mousePos) {
-                let y1 = this._calibration.getPoint(2);
-                wpd.graphicsHelper.drawLine({
-                    x: y1.px,
-                    y: y1.py
-                }, {
-                    x: this._mousePos.x,
-                    y: this._mousePos.y
-                }, "rgba(0,200,0,0.5)");
-                const imageSize = wpd.graphicsWidget.getImageSize();
-                wpd.graphicsHelper.drawLine({
-                    x: 0,
-                    y: this._mousePos.y
-                }, {
-                    x: imageSize.width,
-                    y: this._mousePos.y
-                }, "rgba(0,200,0,0.5)");
+            // Draw X1→X2 connecting line once both are placed
+            if (count >= 2) {
+                let x1pt = this._calibration.getPoint(0);
+                let x2pt = this._calibration.getPoint(1);
+                wpd.graphicsHelper.drawLine({x: x1pt.px, y: x1pt.py}, {x: x2pt.px, y: x2pt.py}, "rgba(200,0,0,0.3)");
             }
 
-            if (count === 4 && this._mousePos && this._calibration.maxPointCount > 4) {
-                let y2 = this._calibration.getPoint(3);
-                wpd.graphicsHelper.drawLine({
-                    x: y2.px,
-                    y: y2.py
-                }, {
-                    x: this._mousePos.x,
-                    y: this._mousePos.y
-                }, "rgba(0,100,200,0.5)");
-                const imageSize = wpd.graphicsWidget.getImageSize();
-                wpd.graphicsHelper.drawLine({
-                    x: 0,
-                    y: this._mousePos.y
-                }, {
-                    x: imageSize.width,
-                    y: this._mousePos.y
-                }, "rgba(0,100,200,0.5)");
+            // Draw X2→X3 connecting line once X3 is placed (piecewise X only)
+            const x3Idx = labels.indexOf('X3');
+            if (x3Idx >= 0 && count > x3Idx) {
+                let x2pt = this._calibration.getPoint(1);
+                let x3pt = this._calibration.getPoint(x3Idx);
+                wpd.graphicsHelper.drawLine({x: x2pt.px, y: x2pt.py}, {x: x3pt.px, y: x3pt.py}, "rgba(150,0,200,0.3)");
             }
 
-            if (count === 4) {
-                let x1 = this._calibration.getPoint(0);
-                let x2 = this._calibration.getPoint(1);
-                let y1 = this._calibration.getPoint(2);
-                let y2 = this._calibration.getPoint(3);
-                wpd.graphicsHelper.drawLine({
-                    x: x1.px,
-                    y: x1.py
-                }, {
-                    x: x2.px,
-                    y: x2.py
-                }, "rgba(200,0,0,0.3)");
-                wpd.graphicsHelper.drawLine({
-                    x: y1.px,
-                    y: y1.py
-                }, {
-                    x: y2.px,
-                    y: y2.py
-                }, "rgba(0,200,0,0.3)");
+            // Draw Y1→Y2 connecting line once both are placed
+            const y1Idx = labels.indexOf('Y1');
+            const y2Idx = labels.indexOf('Y2');
+            if (y1Idx >= 0 && y2Idx >= 0 && count > y2Idx) {
+                let y1pt = this._calibration.getPoint(y1Idx);
+                let y2pt = this._calibration.getPoint(y2Idx);
+                wpd.graphicsHelper.drawLine({x: y1pt.px, y: y1pt.py}, {x: y2pt.px, y: y2pt.py}, "rgba(0,200,0,0.3)");
             }
 
-            if (count === 5) {
-                let x1 = this._calibration.getPoint(0);
-                let x2 = this._calibration.getPoint(1);
-                let y1 = this._calibration.getPoint(2);
-                let y2 = this._calibration.getPoint(3);
-                let y3 = this._calibration.getPoint(4);
-                wpd.graphicsHelper.drawLine({
-                    x: x1.px,
-                    y: x1.py
-                }, {
-                    x: x2.px,
-                    y: x2.py
-                }, "rgba(200,0,0,0.3)");
-                wpd.graphicsHelper.drawLine({
-                    x: y1.px,
-                    y: y1.py
-                }, {
-                    x: y2.px,
-                    y: y2.py
-                }, "rgba(0,200,0,0.3)");
-                wpd.graphicsHelper.drawLine({
-                    x: y2.px,
-                    y: y2.py
-                }, {
-                    x: y3.px,
-                    y: y3.py
-                }, "rgba(0,100,200,0.3)");
+            // Draw Y2→Y3 connecting line once Y3 is placed (piecewise Y only)
+            const y3Idx = labels.indexOf('Y3');
+            if (y2Idx >= 0 && y3Idx >= 0 && count > y3Idx) {
+                let y2pt = this._calibration.getPoint(y2Idx);
+                let y3pt = this._calibration.getPoint(y3Idx);
+                wpd.graphicsHelper.drawLine({x: y2pt.px, y: y2pt.py}, {x: y3pt.px, y: y3pt.py}, "rgba(0,100,200,0.3)");
             }
         }
 
