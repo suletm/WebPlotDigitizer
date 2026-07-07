@@ -20,6 +20,9 @@
 var wpd = wpd || {};
 wpd.acquireData = (function() {
     var dataset, axes;
+    // last "sticky" point-adding tool, replayed when switching datasets;
+    // only 'manualSelection' (Add Point) or 'addPointsOnLine' (Add Line)
+    var stickyTool = 'manualSelection';
 
     function load() {
         dataset = getActiveDataset();
@@ -37,7 +40,12 @@ wpd.acquireData = (function() {
             wpd.graphicsWidget.removeTool();
             wpd.graphicsWidget.setRepainter(new wpd.DataPointsRepainter(axes, dataset));
 
-            manualSelection();
+            // replay the last sticky point-adding tool instead of always resetting to Add Point
+            if (stickyTool === 'addPointsOnLine') {
+                addPointsOnLine();
+            } else {
+                manualSelection();
+            }
 
             wpd.graphicsWidget.forceHandlerRepaint();
             wpd.dataPointCounter.setCount(dataset.getCount());
@@ -53,11 +61,13 @@ wpd.acquireData = (function() {
     }
 
     function manualSelection() {
+        stickyTool = 'manualSelection';
         var tool = new wpd.ManualSelectionTool(axes, dataset);
         wpd.graphicsWidget.setTool(tool);
     }
 
     function addPointsOnLine() {
+        stickyTool = 'addPointsOnLine';
         var tool = new wpd.AddPointsOnLineTool(axes, dataset);
         wpd.graphicsWidget.setTool(tool);
     }
