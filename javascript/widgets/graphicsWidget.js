@@ -61,7 +61,7 @@ wpd.graphicsWidget = (function() {
     let aspectRatio = 1.0;
     let originalImageData = null;
     let zoomRatio = 1.0;
-    let extendedCrosshair = false;
+    let extendedCrosshair = true;
     let hoverTimer = null;
     let activeTool = null;
     let repaintHandler = null;
@@ -666,6 +666,12 @@ wpd.graphicsWidget = (function() {
                 toggleExtendedCrosshair(ev);
             }
         }, false);
+
+        // reflect the default-on state on the toolbar button
+        const $crosshairBtn = document.getElementById('extended-crosshair-btn');
+        if (extendedCrosshair && $crosshairBtn != null) {
+            $crosshairBtn.classList.add('pressed-button');
+        }
 
         // Cycle active dataset with n / p (ignored while typing in a field)
         document.addEventListener('keydown', function(ev) {

@@ -39,15 +39,6 @@ wpd.AxesCornersTool = class {
 
     onMouseMove(ev, pos, imagePos) {
         const count = this._calibration.getCount();
-        if (count < this._calibration.maxPointCount && count > 0) {
-            const repainter = wpd.graphicsWidget.getRepainter();
-            if (repainter && repainter.updateMousePos) {
-                repainter.updateMousePos(imagePos.x, imagePos.y);
-                wpd.graphicsWidget.forceHandlerRepaint();
-            }
-            return;
-        }
-
         if (count < this._calibration.maxPointCount) {
             return;
         }
@@ -156,11 +147,6 @@ wpd.AlignmentCornersRepainter = class {
         this._calibration = calibration;
         this.painterName = 'AlignmentCornersReptainer';
         this._axesTypeString = axesTypeString;
-        this._mousePos = null;
-    }
-
-    updateMousePos(x, y) {
-        this._mousePos = { x, y };
     }
 
     onForcedRedraw() {
@@ -196,33 +182,6 @@ wpd.AlignmentCornersRepainter = class {
         if (this._axesTypeString === "xy") {
             const count = this._calibration.getCount();
             const labels = this._calibration.labels || [];
-            const imageSize = wpd.graphicsWidget.getImageSize();
-
-            // Draw guide for the next point to be placed, based on its label
-            const nextLabel = count < labels.length ? labels[count] : null;
-            if (this._mousePos && nextLabel) {
-                if (nextLabel === 'X2') {
-                    // Vertical guide from X1
-                    let p = this._calibration.getPoint(0);
-                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(200,0,0,0.5)");
-                    wpd.graphicsHelper.drawLine({x: this._mousePos.x, y: 0}, {x: this._mousePos.x, y: imageSize.height}, "rgba(200,0,0,0.5)");
-                } else if (nextLabel === 'X3') {
-                    // Vertical guide from X2
-                    let p = this._calibration.getPoint(1);
-                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(150,0,200,0.5)");
-                    wpd.graphicsHelper.drawLine({x: this._mousePos.x, y: 0}, {x: this._mousePos.x, y: imageSize.height}, "rgba(150,0,200,0.5)");
-                } else if (nextLabel === 'Y2') {
-                    // Horizontal guide from Y1
-                    let p = this._calibration.getPoint(labels.indexOf('Y1'));
-                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(0,200,0,0.5)");
-                    wpd.graphicsHelper.drawLine({x: 0, y: this._mousePos.y}, {x: imageSize.width, y: this._mousePos.y}, "rgba(0,200,0,0.5)");
-                } else if (nextLabel === 'Y3') {
-                    // Horizontal guide from Y2
-                    let p = this._calibration.getPoint(labels.indexOf('Y2'));
-                    wpd.graphicsHelper.drawLine({x: p.px, y: p.py}, {x: this._mousePos.x, y: this._mousePos.y}, "rgba(0,100,200,0.5)");
-                    wpd.graphicsHelper.drawLine({x: 0, y: this._mousePos.y}, {x: imageSize.width, y: this._mousePos.y}, "rgba(0,100,200,0.5)");
-                }
-            }
 
             // Draw X1→X2 connecting line once both are placed
             if (count >= 2) {
