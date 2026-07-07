@@ -419,16 +419,17 @@ wpd.DeleteDataPointTool = (function() {
 })();
 
 wpd.MultipleDatasetRepainter = class {
-    constructor(axesList, datasetList) {
+    constructor(axesList, datasetList, connectPoints) {
         this.painterName = "multipleDatasetsRepainter";
         this._datasetList = datasetList;
         this._axesList = axesList;
+        this._connectPoints = connectPoints === true;
 
         // TODO: for each dataset, create a separate DataPointsRepainter
         this._datasetRepainters = [];
         for (let [dsIdx, ds] of datasetList.entries()) {
             let dsAxes = axesList[dsIdx];
-            this._datasetRepainters.push(new wpd.DataPointsRepainter(dsAxes, ds));
+            this._datasetRepainters.push(new wpd.DataPointsRepainter(dsAxes, ds, this._connectPoints));
         }
     }
 
@@ -454,10 +455,28 @@ wpd.MultipleDatasetRepainter = class {
 };
 
 wpd.DataPointsRepainter = class {
-    constructor(axes, dataset) {
+    constructor(axes, dataset, connectPoints) {
         this._axes = axes;
         this._dataset = dataset;
+        this._connectPoints = connectPoints === true;
         this.painterName = 'dataPointsRepainter';
+    }
+
+    _drawConnectingLines() {
+        const count = this._dataset.getCount();
+        if (count < 2) {
+            return;
+        }
+        // copy pixels and sort left-to-right by image x, so the line traces a curve
+        let pts = [];
+        for (let dindex = 0; dindex < count; dindex++) {
+            pts.push(this._dataset.getPixel(dindex));
+        }
+        pts.sort((a, b) => a.x - b.x);
+        const strokeStyle = this._dataset.colorRGB.toRGBString();
+        for (let i = 0; i < pts.length - 1; i++) {
+            wpd.graphicsHelper.drawLine(pts[i], pts[i + 1], strokeStyle);
+        }
     }
 
     drawPoints() {
@@ -466,6 +485,11 @@ wpd.DataPointsRepainter = class {
 
         if (this._axes == null) {
             return; // this can happen when removing widgets when a new file is loaded:
+        }
+
+        // draw connecting lines first so that the point markers render on top
+        if (this._connectPoints) {
+            this._drawConnectingLines();
         }
 
         if (this._axes.dataPointsHaveLabels && mkeys != null && mkeys[0] === 'label') {
