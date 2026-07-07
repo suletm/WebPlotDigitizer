@@ -586,6 +586,31 @@ wpd.tree = (function() {
         return activeAxes;
     }
 
+    // cycle the active dataset by the given offset (+1 = next, -1 = previous), wrapping around
+    function cycleDataset(offset) {
+        const plotData = wpd.appData.getPlotData();
+        const names = plotData.getDatasetNames();
+        if (names.length === 0) {
+            return;
+        }
+        let idx = activeDataset != null ? names.indexOf(activeDataset.name) : -1;
+        let nextIdx;
+        if (idx < 0) {
+            nextIdx = offset > 0 ? 0 : names.length - 1;
+        } else {
+            nextIdx = (idx + offset + names.length) % names.length;
+        }
+        selectPath("/" + wpd.gettext("datasets") + "/" + names[nextIdx], false);
+    }
+
+    function selectNextDataset() {
+        cycleDataset(1);
+    }
+
+    function selectPreviousDataset() {
+        cycleDataset(-1);
+    }
+
     return {
         init: init,
         refresh: refresh,
@@ -593,6 +618,8 @@ wpd.tree = (function() {
         selectPath: selectPath,
         addMeasurement: addMeasurement,
         getActiveDataset: getActiveDataset,
-        getActiveAxes: getActiveAxes
+        getActiveAxes: getActiveAxes,
+        selectNextDataset: selectNextDataset,
+        selectPreviousDataset: selectPreviousDataset
     };
 })();

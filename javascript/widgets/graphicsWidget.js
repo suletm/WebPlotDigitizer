@@ -667,6 +667,21 @@ wpd.graphicsWidget = (function() {
             }
         }, false);
 
+        // Cycle active dataset with n / p (ignored while typing in a field)
+        document.addEventListener('keydown', function(ev) {
+            const el = document.activeElement;
+            const typing = el != null &&
+                (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+            if (typing || ev.altKey || ev.ctrlKey || ev.metaKey) {
+                return; // don't hijack typing or browser shortcuts
+            }
+            if (wpd.keyCodes.isAlphabet(ev.keyCode, 'n')) {
+                wpd.tree.selectNextDataset();
+            } else if (wpd.keyCodes.isAlphabet(ev.keyCode, 'p')) {
+                wpd.tree.selectPreviousDataset();
+            }
+        }, false);
+
         // hovering over canvas
         $topCanvas.addEventListener('mousemove', hoverOverCanvasHandler, false);
 
