@@ -159,6 +159,7 @@ wpd.tree = (function() {
     let treeWidget = null;
     let activeDataset = null;
     let activeAxes = null;
+    let connectDatasetPoints = false;
 
     // polyfill for IE11/Microsoft Edge
     if (window.NodeList && !NodeList.prototype.forEach) {
@@ -256,7 +257,67 @@ wpd.tree = (function() {
 
         treeWidget.render(treeData, itemColors);
 
+        injectConnectPointsCheckbox();
+
         showTreeItemWidget(null);
+    }
+
+    // Add a "connect points" checkbox onto the Datasets folder row in the tree. The tree is
+    // re-rendered on every refresh, so this runs after each render and restores the flag state.
+    function injectConnectPointsCheckbox() {
+        const $container = document.getElementById("tree-container");
+        if ($container == null) {
+            return;
+        }
+        const label = wpd.gettext("datasets");
+        let $folder = null;
+        $container.querySelectorAll(".tree-folder").forEach(function($f) {
+            if ($f.textContent === label) {
+                $folder = $f;
+            }
+        });
+        if ($folder == null) {
+            return;
+        }
+        // lay the folder row out as "Datasets" on the left, the toggle on the right
+        $folder.classList.add("tree-folder-with-toggle");
+
+        const $checkbox = document.createElement("input");
+        $checkbox.type = "checkbox";
+        $checkbox.id = "connect-datasets-checkbox";
+        $checkbox.title = wpd.gettext("connect-points");
+        $checkbox.checked = connectDatasetPoints;
+        // don't let a click on the checkbox select/toggle the Datasets folder
+        $checkbox.addEventListener("click", function(ev) {
+            ev.stopPropagation();
+        });
+        $checkbox.addEventListener("change", function() {
+            toggleConnectPoints($checkbox.checked);
+        });
+
+        // wrap the checkbox in a label; the text is shown only as a hover tooltip to keep it lean
+        const $label = document.createElement("label");
+        $label.className = "tree-folder-connect";
+        $label.title = wpd.gettext("connect-points");
+        $label.appendChild($checkbox);
+        // keep clicks on the label from selecting the Datasets folder
+        $label.addEventListener("click", function(ev) {
+            ev.stopPropagation();
+        });
+
+        // place the toggle inside the folder row so it sits inline, right-aligned
+        $folder.appendChild($label);
+    }
+
+    function toggleConnectPoints(checked) {
+        connectDatasetPoints = checked === true;
+        // The connect-points overlay only applies to the "Datasets" group view. Repaint it if it is
+        // the currently active repainter (checking the repainter is robust: the tree's selectedPath
+        // is reset on every tree rebuild, whereas the graphics repainter persists).
+        const repainter = wpd.graphicsWidget.getRepainter();
+        if (repainter != null && repainter.painterName === "multipleDatasetsRepainter") {
+            onDatasetGroupSelection();
+        }
     }
 
     function showTreeItemWidget(id) {
@@ -331,7 +392,8 @@ wpd.tree = (function() {
                 datasetList.push(ds);
             }
         }
-        wpd.graphicsWidget.setRepainter(new wpd.MultipleDatasetRepainter(axesList, datasetList));
+        wpd.graphicsWidget.setRepainter(
+            new wpd.MultipleDatasetRepainter(axesList, datasetList, connectDatasetPoints));
     }
 
     function renderDatasetAxesSelection() {
@@ -586,6 +648,31 @@ wpd.tree = (function() {
         return activeAxes;
     }
 
+    // cycle the active dataset by the given offset (+1 = next, -1 = previous), wrapping around
+    function cycleDataset(offset) {
+        const plotData = wpd.appData.getPlotData();
+        const names = plotData.getDatasetNames();
+        if (names.length === 0) {
+            return;
+        }
+        let idx = activeDataset != null ? names.indexOf(activeDataset.name) : -1;
+        let nextIdx;
+        if (idx < 0) {
+            nextIdx = offset > 0 ? 0 : names.length - 1;
+        } else {
+            nextIdx = (idx + offset + names.length) % names.length;
+        }
+        selectPath("/" + wpd.gettext("datasets") + "/" + names[nextIdx], false);
+    }
+
+    function selectNextDataset() {
+        cycleDataset(1);
+    }
+
+    function selectPreviousDataset() {
+        cycleDataset(-1);
+    }
+
     return {
         init: init,
         refresh: refresh,
@@ -593,6 +680,9 @@ wpd.tree = (function() {
         selectPath: selectPath,
         addMeasurement: addMeasurement,
         getActiveDataset: getActiveDataset,
-        getActiveAxes: getActiveAxes
+        getActiveAxes: getActiveAxes,
+        selectNextDataset: selectNextDataset,
+        selectPreviousDataset: selectPreviousDataset,
+        toggleConnectPoints: toggleConnectPoints
     };
 })();
