@@ -28,7 +28,8 @@ wpd.saveResume = (function() {
     }
 
     function load() {
-        wpd.popup.show('import-json-window');
+        // open the OS file-selection window directly (skips the intermediate popup)
+        document.getElementById('import-json-file').click();
     }
 
     function resumeFromJSON(json_data) {

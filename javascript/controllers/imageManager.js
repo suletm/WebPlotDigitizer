@@ -31,6 +31,11 @@ wpd.imageManager = (function() {
         wpd.graphicsWidget.saveImage();
     }
 
+    function pickFile() {
+        // open the OS file-selection window directly (skips the intermediate popup)
+        document.getElementById('fileLoadBox').click();
+    }
+
     function load() {
         let $input = document.getElementById('fileLoadBox');
         if ($input.files.length > 0) {
@@ -146,6 +151,7 @@ wpd.imageManager = (function() {
         loadFromURL: loadFromURL,
         loadFromFile: loadFromFile,
         load: load,
+        pickFile: pickFile,
         getImageInfo: getImageInfo,
         initializeFileManager: initializeFileManager,
         initializePDFManager: initializePDFManager

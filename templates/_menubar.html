@@ -21,7 +21,7 @@
     <div class="wpd-menu-header">{{ _("File") }}</div>
     <div class="wpd-menu-dropdown">
         <ul>
-            <li onclick="wpd.popup.show('loadNewImage');">{{ _("Load Image(s)/PDF(s)") }}</li>
+            <li onclick="wpd.imageManager.pickFile();">{{ _("Load Image(s)/PDF(s)") }}</li>
             <li onclick="wpd.saveResume.load();">{{ _("Load Project From Disk") }}</li>
             <li onclick="wpd.saveResume.save();">{{ _("Save Project To Disk") }}</li>
             {% if app_mode == 'offline' %}
